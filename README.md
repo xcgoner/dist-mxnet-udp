@@ -1,5 +1,10 @@
 Apache MXNet (incubating) for Deep Learning
-=====
+
+git clone --recursive https://github.com/xcgoner/dist-mxnet.git
+Build with GPU and Distributed KVStore:
+make -j5 USE_OPENCV=0 USE_BLAS=openblas USE_CUDA=1 USE_CUDA_PATH=/usr/local/cuda USE_CUDNN=1 USE_DIST_KVSTORE=1
+
+=====cd 
 
 [![Build Status](https://travis-ci.org/dmlc/mxnet.svg?branch=master)](https://travis-ci.org/dmlc/mxnet)
 [![Documentation Status](https://readthedocs.org/projects/mxnet/badge/?version=latest)](http://mxnet.io/)
@@ -22,7 +27,9 @@ deep learning systems, and interesting insights of DL systems for hackers.
 
 What's New
 ----------
+
 * [Version 0.11.0.rc3 Release](https://github.com/apache/incubator-mxnet/releases/tag/0.11.0.rc3) - MXNet 0.11.0.rc3 Release.
+
 * [Apache Incubator](http://incubator.apache.org/projects/mxnet.html) - We are now an Apache Incubator project.
 * [Version 0.10.0 Release](https://github.com/dmlc/mxnet/releases/tag/v0.10.0) - MXNet 0.10.0 Release.
 * [Version 0.9.3 Release](./docs/architecture/release_note_0_9.md) - First 0.9 official release.

@@ -21,6 +21,7 @@
 # setup
 export LD_LIBRARY_PATH=`pwd`/`dirname $0`/lib:/usr/local/cuda/lib64:$LD_LIBRARY_PATH
 export PYTHONPATH=`pwd`/`dirname $0`/python
+
 cd `pwd`/`dirname $0`
 . sh2ju.sh
 
@@ -59,8 +60,10 @@ juLog -name=Build -error=Error build
 # check if the final evaluation accuracy exceed the threshold
 check_val() {
     expected=$1
+
     pass="Final validation >= $expected, Pass"
     fail="Final validation < $expected, Fail"
+
     python ../../tools/parse_log.py log --format none | tail -n1 | \
         awk "{ if (\$3~/^[.0-9]+$/ && \$3 > $expected) print \"$pass\"; else print \"$fail\"}"
     rm -f log
@@ -74,11 +77,13 @@ test_lenet() {
         echo "OPTIMIZER: $optimizer"
         if [ "$optimizer" == "adam" ]; then
             learning_rate=0.0005
+
             desired_accuracy=0.98
         else
             learning_rate=0.01
             desired_accuracy=0.99
         fi
+
         python $example_dir/train_mnist.py --lr $learning_rate \
             --network lenet --optimizer $optimizer --gpus $gpus \
             --num-epochs 10 2>&1 | tee log
@@ -88,6 +93,7 @@ test_lenet() {
        check_val $desired_accuracy
     done
 }
+
 juLog -name=Python.Lenet.Mnist -error=Fail test_lenet
 
 exit $errors
