@@ -1,6 +1,18 @@
 Apache MXNet (incubating) for Deep Learning
 =====
 
+git clone --recursive https://github.com/xcgoner/dist-mxnet.git
+Build with GPU and Distributed KVStore:
+make -j5 USE_OPENCV=0 USE_BLAS=openblas USE_CUDA=1 USE_CUDA_PATH=/usr/local/cuda USE_CUDNN=1 USE_DIST_KVSTORE=1
+
+pkill -u cx2 python
+
+python train_mnist.py
+
+python ../../tools/launch.py -n 2 --launcher ssh -H ../../tests/distributed/hosts python train_mnist.py --kv-store dist_sync
+
+-----------
+
 [![Build Status](https://travis-ci.org/dmlc/mxnet.svg?branch=master)](https://travis-ci.org/dmlc/mxnet)
 [![Documentation Status](https://readthedocs.org/projects/mxnet/badge/?version=latest)](http://mxnet.io/)
 [![GitHub license](http://dmlc.github.io/img/apache2.svg)](./LICENSE)
