@@ -1,6 +1,9 @@
 Apache MXNet (incubating) for Deep Learning
 =====
 
+Note: this version is forked from tag 0.11.0.rc3
+---------
+
 git clone --recursive https://github.com/xcgoner/dist-mxnet.git
 Build with GPU and Distributed KVStore:
 make -j5 USE_OPENCV=0 USE_BLAS=openblas USE_CUDA=1 USE_CUDA_PATH=/usr/local/cuda USE_CUDNN=1 USE_DIST_KVSTORE=1
