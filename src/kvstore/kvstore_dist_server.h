@@ -31,6 +31,7 @@
 #include <functional>
 #include <future>
 #include <vector>
+#include <iterator>
 #include "ps/ps.h"
 #include "mxnet/kvstore.h"
 
@@ -154,6 +155,21 @@ class KVStoreDistServer {
   void DataHandle(const ps::KVMeta& req_meta,
                   const ps::KVPairs<real_t>& req_data,
                   ps::KVServer<real_t>* server) {
+
+    // //debug 
+    // LG << "keys: ";
+    // for (int i = 0; i < req_data.keys.size(); ++i) {
+    //   LG << req_data.keys[i];
+    // }
+
+    // // debug
+    // std::ostringstream key_list;
+    // key_list << "key_list: ";
+    // for (int i = 0; i < req_data.keys.size(); ++i) {
+    //   key_list << req_data.keys[i] << ", ";
+    // }
+    // LG << key_list.str();
+
     // do some check
     CHECK_EQ(req_data.keys.size(), (size_t)1);
     if (req_meta.push) {
@@ -161,8 +177,13 @@ class KVStoreDistServer {
       CHECK_EQ(req_data.vals.size(), (size_t)req_data.lens[0]);
     }
 
-    int key = DecodeKey(req_data.keys[0]);
+    // int key = DecodeKey(req_data.keys[0]);
+    ps::Key key = req_data.keys[0];
     auto& stored = store_[key];
+
+    // // debug
+    // if (ps::IsServer())
+    //   LOG(INFO) << "Server\t"<< ps::MyRank() << "\tKey:\t" << key << "\tValue:\t" << stored.shape();
 
     // there used several WaitToRead, this is because \a recved's memory
     // could be deallocated when this function returns. so we need to make sure
@@ -173,6 +194,7 @@ class KVStoreDistServer {
       TBlob recv_blob((real_t*)req_data.vals.data(), // NOLINT(*)
                       dshape, cpu::kDevMask);
       NDArray recved = NDArray(recv_blob, 0);
+      // LG << "push request received: key = " << key;
       if (stored.is_none()) {
         // initialization
         stored = NDArray(dshape, Context());
@@ -195,6 +217,8 @@ class KVStoreDistServer {
         merged.request.push_back(req_meta);
 
         if (merged.request.size() == (size_t)ps::NumWorkers()) {
+          // // debug
+          // LG << "merging";
           // let the main thread to execute updater_, which is necessary for
           // python
           if (updater_) {
@@ -225,6 +249,7 @@ class KVStoreDistServer {
       }
     } else {
       // pull
+      // LG << "pull request received: key = " << key;
       ps::KVPairs<real_t> response;
       CHECK(!stored.is_none()) << "init " << key << " first";
       int len = stored.shape()[0];
@@ -233,6 +258,8 @@ class KVStoreDistServer {
       // TODO(mli) try to remove this CopyFrom
       response.vals.CopyFrom(static_cast<const float*>(stored.data().dptr_), len);
       server->Response(req_meta, response);
+      // debug
+      // LG << "pull response sent: key = " << key;
     }
   }
 
@@ -248,13 +275,15 @@ class KVStoreDistServer {
   KVStore::Controller controller_;
   KVStore::Updater updater_;
 
-  std::unordered_map<int, NDArray> store_;
+  // std::unordered_map<int, NDArray> store_;
+  std::unordered_map<ps::Key, NDArray> store_;
 
   struct MergeBuf {
     std::vector<ps::KVMeta> request;
     NDArray array;
   };
-  std::unordered_map<int, MergeBuf> merge_buf_;
+  // std::unordered_map<int, MergeBuf> merge_buf_;
+  std::unordered_map<ps::Key, MergeBuf> merge_buf_;
 
   Executor exec_;
 

@@ -1,4 +1,7 @@
 import os, sys
+os.environ["MXNET_KVSTORE_BIGARRAY_BOUND"] = "3000"
+os.environ["DMLC_NUM_KKERANGE"] = "2"
+os.environ["PS_VAN"] = "zmqudp"
 import argparse
 import logging
 logging.basicConfig(level=logging.DEBUG)
@@ -8,15 +11,21 @@ import numpy as np
 
 if __name__ == '__main__':
 
-    n_samples = 100
+    n_samples = 1
+    n_samples_eval = 10
+    n_features = 6000
+    #True weight
+    w = np.ones(n_features, dtype='float') / n_features
     #Training data
-    train_data = np.random.uniform(0, 1, [n_samples, 2])
-    train_label = np.array([train_data[i][0] + 2 * train_data[i][1] for i in range(100)])
-    batch_size = 4
+    # train_data = np.random.uniform(0, 1, [n_samples, n_features])
+    train_data = np.arange(n_samples * n_features, dtype='float').reshape((n_samples, n_features)) / n_features / n_samples
+    train_label = train_data.dot(w)
+    batch_size = 1
 
     #Evaluation Data
-    eval_data = np.array([[7,2],[6,10],[12,2]])
-    eval_label = np.array([11,26,16])
+    # eval_data = np.random.uniform(0, 1, [n_samples, n_features])
+    eval_data = np.arange(n_samples_eval * n_features, dtype='float').reshape((n_samples_eval, n_features)) / n_features / n_samples_eval + 0.1
+    eval_label = eval_data.dot(w)
 
     train_iter = mx.io.NDArrayIter(train_data,train_label, batch_size, shuffle=True,label_name='lin_reg_label')
     eval_iter = mx.io.NDArrayIter(eval_data, eval_label, batch_size, shuffle=False)
@@ -35,8 +44,10 @@ if __name__ == '__main__':
     # train
     kv = mx.kvstore.create('dist_sync')
     model.fit(train_iter, eval_iter,
-            optimizer_params={'learning_rate':0.005, 'momentum': 0.9},
-            num_epoch=5,
+            optimizer_params={'learning_rate':0.01, 'momentum': 0.1},
+            initializer=mx.init.Zero(),
+            num_epoch=1,
             eval_metric='mse',
-            batch_end_callback = mx.callback.Speedometer(100, 2),
+            batch_end_callback = mx.callback.Speedometer(100, 200),
             kvstore=kv)
+    # print(kv.rank)

@@ -45,7 +45,14 @@ KVStore* KVStore::Create(const char *type_name) {
 
   if (has("dist")) {
 #if MXNET_USE_DIST_KVSTORE
-    kv = new kvstore::KVStoreDist(use_device_comm);
+    std::string van_mode = dmlc::GetEnv("PS_VAN", std::string("zmq"));
+    if (van_mode == "zmq") {
+      kv = new kvstore::KVStoreDist(use_device_comm);
+    }
+    else if (van_mode == "zmqudp") {
+      kv = new kvstore::KVCheapStoreDist(use_device_comm);
+    }
+    
     if (!has("_async") && kv->IsWorkerNode() && kv->get_rank() == 0) {
       // configure the server to be the sync mode
       kv->SendCommandToServers(kvstore::kSyncMode, "");

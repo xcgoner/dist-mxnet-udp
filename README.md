@@ -7,12 +7,18 @@ Note: this version is forked from tag 0.11.0.rc3
 git clone --recursive https://github.com/xcgoner/dist-mxnet.git
 Build with GPU and Distributed KVStore:
 make -j5 USE_OPENCV=0 USE_BLAS=openblas USE_CUDA=1 USE_CUDA_PATH=/usr/local/cuda USE_CUDNN=1 USE_DIST_KVSTORE=1
+make -j5 USE_OPENCV=0 USE_BLAS=openblas USE_CUDA=0 USE_DIST_KVSTORE=1
 
 pkill -u cx2 python
 
 python train_mnist.py
 
 python ../../tools/launch.py -n 2 --launcher ssh -H ../../tests/distributed/hosts python train_mnist.py --kv-store dist_sync
+
+python ../../tools/launch.py -n 3 -s 3 --launcher ssh -H local_hosts python lr.py
+
+python ../../tools/launch.py -n 2 --launcher ssh -H hosts python train_mnist.py --kv-store dist_sync
+
 ```
 
 -----------

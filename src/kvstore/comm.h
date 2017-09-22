@@ -75,6 +75,8 @@ class CommCPU : public Comm {
   CommCPU() {
     nthread_reduction_ = dmlc::GetEnv("MXNET_KVSTORE_REDUCTION_NTHREADS", 4);
     bigarray_bound_ = dmlc::GetEnv("MXNET_KVSTORE_BIGARRAY_BOUND", 1000 * 1000);
+    // // debug
+    // LG << "bigarray_bound_=" << bigarray_bound_;
   }
   virtual ~CommCPU() { }
 
