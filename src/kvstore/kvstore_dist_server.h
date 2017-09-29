@@ -208,13 +208,14 @@ class KVStoreDistServer {
           // sender_list_[key].clear();
 
           // deubg
-          LG << "timeout merged: " << merge_num_[key];
+          // LG << "timeout merged: " << merge_num_[key];
 
           auto& merged = merge_buf_[key];
 
           int num_workers = ps::NumWorkers();
           int merge_num = merge_num_[key];
           CHECK_LE(merge_num, num_workers);
+          CHECK_GE(merge_num, 1);
           if (merge_num != num_workers) {
             merged.array *= ( ((double)num_workers) / merge_num );
           }

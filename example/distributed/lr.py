@@ -2,8 +2,8 @@ import os, sys
 os.environ["MXNET_KVSTORE_BIGARRAY_BOUND"] = "10"
 os.environ["DMLC_NUM_KEYRANGE"] = "12"
 os.environ["PS_VAN"] = "zmq"
-os.environ["MXNET_MERGE_THRESHOLD"] = "2"
-os.environ["MXNET_MERGE_TAU_MILLISECOND"] = "100"
+# os.environ["MXNET_MERGE_THRESHOLD"] = "2"
+os.environ["MXNET_MERGE_TAU_MILLISECOND"] = "0"
 import argparse
 import logging
 logging.basicConfig(level=logging.DEBUG)
@@ -13,8 +13,8 @@ import numpy as np
 
 if __name__ == '__main__':
 
-    n_samples = 120
-    n_samples_eval = 10
+    n_samples = 10000
+    n_samples_eval = 200
     n_features = 100
     #True weight
     w = np.ones(n_features, dtype='float') / n_features
@@ -22,7 +22,7 @@ if __name__ == '__main__':
     # train_data = np.random.uniform(0, 1, [n_samples, n_features])
     train_data = np.arange(n_samples * n_features, dtype='float').reshape((n_samples, n_features)) / n_features / n_samples
     train_label = train_data.dot(w)
-    batch_size = 1
+    batch_size = 50
 
     #Evaluation Data
     # eval_data = np.random.uniform(0, 1, [n_samples, n_features])
