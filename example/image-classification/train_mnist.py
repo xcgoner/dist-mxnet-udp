@@ -23,8 +23,8 @@ import argparse
 import logging
 logging.basicConfig(level=logging.DEBUG)
 os.environ["MXNET_KVSTORE_BIGARRAY_BOUND"] = "2000"
-os.environ["DMLC_NUM_KKERANGE"] = "54"
-os.environ["PS_VAN"] = "zmqudp"
+os.environ["DMLC_NUM_KEYRANGE"] = "7"
+os.environ["PS_VAN"] = "zmq"
 from common import find_mxnet, fit
 from common.util import download_file
 import mxnet as mx

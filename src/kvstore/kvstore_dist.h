@@ -65,6 +65,7 @@ class KVStoreDist : public KVStoreLocal {
 
     // // debug
     // LG << "bigarray_bound_=" << bigarray_bound_;
+    iteration_ = 0;
   }
 
   virtual ~KVStoreDist() {
@@ -105,16 +106,24 @@ class KVStoreDist : public KVStoreLocal {
   void Push(const std::vector<int>& keys,
             const std::vector<NDArray>& values,
             int priority) override {
+    // debug
+    // LG << "Push called: " << keys[0];
+    // LG << "Worker push itr: " << iteration_;
     Push_(keys, values, priority, true);
   }
 
   void Pull(const std::vector<int>& keys,
             const std::vector<NDArray*>& values,
             int priority) override {
+
+    // debug
+    // LG << "Pull called: " << keys[0];
+
     std::vector<int> uniq_keys;
     std::vector<std::vector<NDArray*> > grouped_vals;
     GroupKVPairs(keys, values, &uniq_keys, &grouped_vals);
 
+    // TODO: random permute
     for (size_t i = 0; i < uniq_keys.size(); ++i) {
       int key = uniq_keys[i];
       // use the same array for merging to guarantee that pull always happens
@@ -138,8 +147,9 @@ class KVStoreDist : public KVStoreLocal {
         // false means not to delete data when SArray is deleted
         auto vals = new ps::SArray<real_t>(data, size, false);
         // issue pull
+        // TODO: check thread-safe for iteration counter
         CHECK_NOTNULL(ps_worker_)->ZPull(
-            pskv.keys, vals, &pskv.lens, 0, [vals, cb](){ delete vals; cb(); });
+            pskv.keys, vals, &pskv.lens, 0, [vals, cb](){ delete vals; cb(); }, &iteration_);
       };
 
       CHECK_NOTNULL(Engine::Get())->PushAsync(
@@ -253,7 +263,7 @@ class KVStoreDist : public KVStoreLocal {
         // do push. false means no delete
         ps::SArray<real_t> vals(data, size, false);
         CHECK_NOTNULL(ps_worker_)->ZPush(
-            pskv.keys, vals, pskv.lens, 0, [cb]() { cb(); });
+            pskv.keys, vals, pskv.lens, 0, [cb]() { cb(); }, iteration_);
       };
       Engine::Get()->PushAsync(
           push_to_servers,
@@ -350,6 +360,9 @@ class KVStoreDist : public KVStoreLocal {
         CHECK_EQ(static_cast<size_t>(pskv.size), size);
       }
     }
+
+    // LG << "number of keys: " << pskv.keys.size();
+
     return pskv;
   }
 
@@ -367,6 +380,10 @@ class KVStoreDist : public KVStoreLocal {
   size_t bigarray_bound_;
   /// \brief send & recver buffer
   std::unordered_map<int, NDArray> comm_buf_;
+  /**
+   * \brief the iteration counter
+   */
+  int iteration_;
 };
 
 // for UDP server
@@ -663,7 +680,6 @@ private:
          pskv.lens.push_back(part_size);
          pskv.size += part_size;
        }
-
 
        CHECK_EQ(static_cast<size_t>(pskv.size), size);
      }

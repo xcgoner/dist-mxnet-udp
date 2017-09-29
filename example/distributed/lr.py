@@ -1,7 +1,9 @@
 import os, sys
-os.environ["MXNET_KVSTORE_BIGARRAY_BOUND"] = "3000"
-os.environ["DMLC_NUM_KKERANGE"] = "2"
-os.environ["PS_VAN"] = "zmqudp"
+os.environ["MXNET_KVSTORE_BIGARRAY_BOUND"] = "10"
+os.environ["DMLC_NUM_KEYRANGE"] = "12"
+os.environ["PS_VAN"] = "zmq"
+os.environ["MXNET_MERGE_THRESHOLD"] = "2"
+os.environ["MXNET_MERGE_TAU_MILLISECOND"] = "100"
 import argparse
 import logging
 logging.basicConfig(level=logging.DEBUG)
@@ -11,9 +13,9 @@ import numpy as np
 
 if __name__ == '__main__':
 
-    n_samples = 1
+    n_samples = 120
     n_samples_eval = 10
-    n_features = 6000
+    n_features = 100
     #True weight
     w = np.ones(n_features, dtype='float') / n_features
     #Training data
@@ -46,7 +48,7 @@ if __name__ == '__main__':
     model.fit(train_iter, eval_iter,
             optimizer_params={'learning_rate':0.01, 'momentum': 0.1},
             initializer=mx.init.Zero(),
-            num_epoch=1,
+            num_epoch=3,
             eval_metric='mse',
             batch_end_callback = mx.callback.Speedometer(100, 200),
             kvstore=kv)
