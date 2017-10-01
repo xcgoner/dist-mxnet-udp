@@ -211,6 +211,7 @@ class KVStoreDistServer {
           // sender_list_[key].clear();
 
           // deubg
+          // if (merge_num_[key] > merge_threshold_) LG << "timeout merged: " << merge_num_[key];
           // LG << "timeout merged: " << merge_num_[key];
 
           auto& merged = merge_buf_[key];
@@ -323,6 +324,7 @@ class KVStoreDistServer {
                   obj->AcceptPriority(msg);
                 }, req_meta, req_data, tau_millisec_);
                 timer.detach();
+                merged.array.WaitToRead();
               }
               else {
                 // // debug
@@ -386,7 +388,7 @@ class KVStoreDistServer {
     } else {
       // pull
       if (sync_mode_ && req_data.iteration == store_iteration_[key] + 1) {
-        // LG << key << " pull itr: " << req_data.iteration << ", current itr: " << store_iteration_[key] << ", push back";
+        LG << key << " pull itr: " << req_data.iteration << ", current itr: " << store_iteration_[key] << ", push back";
         // push back to the queue and process later
         ps::Message msg;
         msg.meta.head        = req_meta.cmd;
@@ -406,7 +408,7 @@ class KVStoreDistServer {
         // the queue is thread-safe
         obj->Accept(msg);
       }
-      else if(sync_mode_ && req_data.iteration == store_iteration_[key] || !sync_mode_) {
+      else if( (sync_mode_ && req_data.iteration == store_iteration_[key]) || !sync_mode_) {
         // LG << key << " pull itr: " << req_data.iteration << ", current itr: " << store_iteration_[key] << ", response";
         // LG << "pull request received: key = " << key;
         ps::KVPairs<real_t> response;
@@ -425,7 +427,19 @@ class KVStoreDistServer {
       }
       else {
         // TODO: ???
-        LG << "something is wrong for pulling";
+        LG << "something is wrong for pulling" << "req_data.iteration: " << req_data.iteration << ", store_iteration_[key]: " << store_iteration_[key];
+        // still response
+        ps::KVPairs<real_t> response;
+        CHECK(!stored.is_none()) << "init " << key << " first";
+        int len = stored.shape()[0];
+        response.keys = req_data.keys;
+        response.lens = {len};
+        // TODO(mli) try to remove this CopyFrom
+        response.vals.CopyFrom(static_cast<const float*>(stored.data().dptr_), len);
+        response.iteration = store_iteration_[key];
+        // // debug
+        // LG << "store_iteration_[key]: " << store_iteration_[key];
+        server->Response(req_meta, response);
       }
     }
   }
