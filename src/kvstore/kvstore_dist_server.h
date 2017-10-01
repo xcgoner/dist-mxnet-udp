@@ -187,6 +187,9 @@ class KVStoreDistServer {
     ps::Key key = req_data.keys[0];
     auto& stored = store_[key];
 
+    // initialize?
+    if (store_iteration_.count(key) == 0) store_iteration_[key] = 0;
+
     // // debug
     // if (ps::IsServer())
     //   LOG(INFO) << "Server\t"<< ps::MyRank() << "\tKey:\t" << key << "\tValue:\t" << stored.shape();
@@ -236,6 +239,9 @@ class KVStoreDistServer {
           merge_num_[key] = 0;
           store_iteration_[key] = store_iteration_[key] + 1;
           stored.WaitToRead();
+
+          // deubg
+          // LG << "timeout merged: " << merge_num_[key];
         }
         // else {
         //   // debug
@@ -251,6 +257,7 @@ class KVStoreDistServer {
         NDArray recved = NDArray(recv_blob, 0);
         // LG << "push request received: key = " << key;
         if (stored.is_none()) {
+          // the very first push
           // initialization
           stored = NDArray(dshape, Context());
           CopyFromTo(recved, &stored, 0);
@@ -262,7 +269,7 @@ class KVStoreDistServer {
           // synced push
   
           // TODO: check req_data.iteration
-          // LG << "Server push itr: " << req_data.iteration << ", current itr: " << store_iteration_[key];
+          // LG << key << " push itr: " << req_data.iteration << ", current itr: " << store_iteration_[key];
   
           if (req_data.iteration == store_iteration_[key]) {
             // debug
@@ -327,7 +334,7 @@ class KVStoreDistServer {
                 // LG << sender_list.str();
                 // sender_list_[key].clear();
 
-                // // deubg
+                // deubg
                 // LG << "normally merged!";
     
                 int num_workers = ps::NumWorkers();
@@ -351,6 +358,10 @@ class KVStoreDistServer {
                 merge_num_[key] = 0;
                 store_iteration_[key] = store_iteration_[key] + 1;
                 stored.WaitToRead();
+
+                // // deubg
+                // LG << "normally merged!";
+                // LG << "number of keys:" << merge_num_.size();
               }
             } else {
               merged.array.WaitToRead();
@@ -374,22 +385,48 @@ class KVStoreDistServer {
       }
     } else {
       // pull
-      // LG << "pull request received: key = " << key;
-      ps::KVPairs<real_t> response;
-      CHECK(!stored.is_none()) << "init " << key << " first";
-      int len = stored.shape()[0];
-      response.keys = req_data.keys;
-      response.lens = {len};
-      // TODO(mli) try to remove this CopyFrom
-      response.vals.CopyFrom(static_cast<const float*>(stored.data().dptr_), len);
-      // initialize?
-      if (store_iteration_.count(key) == 0) store_iteration_[key] = 0;
-      response.iteration = store_iteration_[key];
-      // // debug
-      // LG << "store_iteration_[key]: " << store_iteration_[key];
-      server->Response(req_meta, response);
-      // debug
-      // LG << "pull response sent: key = " << key;
+      if (sync_mode_ && req_data.iteration == store_iteration_[key] + 1) {
+        // LG << key << " pull itr: " << req_data.iteration << ", current itr: " << store_iteration_[key] << ", push back";
+        // push back to the queue and process later
+        ps::Message msg;
+        msg.meta.head        = req_meta.cmd;
+        msg.meta.push        = false;
+        msg.meta.sender      = req_meta.sender;
+        msg.meta.timestamp   = req_meta.timestamp;
+        msg.meta.iteration   = req_data.iteration;
+        msg.meta.customer_id = req_meta.customer_id;
+        msg.meta.fake        = false;
+        msg.meta.request     = true;
+
+        msg.AddData(req_data.keys);
+        msg.AddData(req_data.vals);
+        auto* obj = ps::Postoffice::Get()->GetCustomer(req_meta.customer_id, 5);
+        CHECK(obj) << "timeout (5 sec) to wait App " << req_meta.customer_id << " ready";
+        // insert to the tail of the queue
+        // the queue is thread-safe
+        obj->Accept(msg);
+      }
+      else if(sync_mode_ && req_data.iteration == store_iteration_[key] || !sync_mode_) {
+        // LG << key << " pull itr: " << req_data.iteration << ", current itr: " << store_iteration_[key] << ", response";
+        // LG << "pull request received: key = " << key;
+        ps::KVPairs<real_t> response;
+        CHECK(!stored.is_none()) << "init " << key << " first";
+        int len = stored.shape()[0];
+        response.keys = req_data.keys;
+        response.lens = {len};
+        // TODO(mli) try to remove this CopyFrom
+        response.vals.CopyFrom(static_cast<const float*>(stored.data().dptr_), len);
+        response.iteration = store_iteration_[key];
+        // // debug
+        // LG << "store_iteration_[key]: " << store_iteration_[key];
+        server->Response(req_meta, response);
+        // debug
+        // LG << "pull response sent: key = " << key;
+      }
+      else {
+        // TODO: ???
+        LG << "something is wrong for pulling";
+      }
     }
   }
 

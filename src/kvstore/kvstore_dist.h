@@ -65,7 +65,9 @@ class KVStoreDist : public KVStoreLocal {
 
     // // debug
     // LG << "bigarray_bound_=" << bigarray_bound_;
-    iteration_ = 0;
+
+    // // initialization
+    // iteration_ = -1;
   }
 
   virtual ~KVStoreDist() {
@@ -124,9 +126,15 @@ class KVStoreDist : public KVStoreLocal {
     GroupKVPairs(keys, values, &uniq_keys, &grouped_vals);
 
     // TODO: random permute
-    std::random_shuffle(uniq_keys.begin(), uniq_keys.end());
+    // std::random_shuffle(uniq_keys.begin(), uniq_keys.end());
     for (size_t i = 0; i < uniq_keys.size(); ++i) {
       int key = uniq_keys[i];
+
+      // initialize
+      if (store_iteration_.count(key) == 0) store_iteration_[key] = -1;
+
+      int iteration = store_iteration_[key];
+
       // use the same array for merging to guarantee that pull always happens
       // after the previous push on this key
       auto& recv_buf = comm_buf_[key];
@@ -135,7 +143,7 @@ class KVStoreDist : public KVStoreLocal {
         recv_buf = NDArray(
           grouped_vals[i][0]->shape(), pinned_ctx_, true, grouped_vals[i][0]->dtype());
       }
-      auto pull_from_servers = [this, key, recv_buf](
+      auto pull_from_servers = [this, key, recv_buf, iteration](
           RunContext rctx, Engine::CallbackOnComplete cb) {
         // convert to ps keys
         size_t size = recv_buf.shape().Size();
@@ -149,8 +157,9 @@ class KVStoreDist : public KVStoreLocal {
         auto vals = new ps::SArray<real_t>(data, size, false);
         // issue pull
         // TODO: check thread-safe for iteration counter
+        // LG << "MyRank: " << ps::MyRank() << ", pulling: " << key << ", iteration: " << store_iteration_[key];
         CHECK_NOTNULL(ps_worker_)->ZPull(
-            pskv.keys, vals, &pskv.lens, 0, [vals, cb](){ delete vals; cb(); }, &iteration_);
+            pskv.keys, vals, &pskv.lens, 0, [vals, cb](){ delete vals; cb(); }, iteration);
       };
 
       CHECK_NOTNULL(Engine::Get())->PushAsync(
@@ -161,6 +170,8 @@ class KVStoreDist : public KVStoreLocal {
           FnProperty::kNormal,
           priority,
           PROFILER_MESSAGE("KVStoreDistPull"));
+
+      store_iteration_[key] = store_iteration_[key] + 1;
 
       comm_->Broadcast(key, recv_buf, grouped_vals[i], priority);
     }
@@ -232,12 +243,20 @@ class KVStoreDist : public KVStoreLocal {
     GroupKVPairs(keys, values, &uniq_keys, &grouped_vals);
 
     // TODO: random permute
-    std::random_shuffle(uniq_keys.begin(), uniq_keys.end());
+    // std::random_shuffle(uniq_keys.begin(), uniq_keys.end());
     for (size_t i = 0; i < uniq_keys.size(); ++i) {
       // merge over devcies
       int key = uniq_keys[i];
+
+      // debug
+      // initialize
+      // CHECK_NE(store_iteration_.count(key), 0);
+      if (store_iteration_.count(key) == 0) store_iteration_[key] = -1;
+
       const auto& vals = grouped_vals[i];
       NDArray merged = do_merge ? comm_->Reduce(key, vals, priority) : vals[0];
+
+      
 
       auto& send_buf = comm_buf_[key];
       if (merged.ctx().dev_mask() == cpu::kDevMask) {
@@ -249,9 +268,11 @@ class KVStoreDist : public KVStoreLocal {
         CopyFromTo(merged, &send_buf);
       }
 
+      int iteration = store_iteration_[key];
+
       // push to servers
       auto push_to_servers =
-          [this, key, send_buf](RunContext rctx, Engine::CallbackOnComplete cb) {
+          [this, key, send_buf, iteration](RunContext rctx, Engine::CallbackOnComplete cb) {
         // convert to ps keys
         size_t size = send_buf.shape().Size();
 
@@ -266,7 +287,7 @@ class KVStoreDist : public KVStoreLocal {
         // do push. false means no delete
         ps::SArray<real_t> vals(data, size, false);
         CHECK_NOTNULL(ps_worker_)->ZPush(
-            pskv.keys, vals, pskv.lens, 0, [cb]() { cb(); }, iteration_);
+            pskv.keys, vals, pskv.lens, 0, [cb]() { cb(); }, iteration);
       };
       Engine::Get()->PushAsync(
           push_to_servers,
@@ -386,7 +407,8 @@ class KVStoreDist : public KVStoreLocal {
   /**
    * \brief the iteration counter
    */
-  int iteration_;
+  // int iteration_;
+  std::unordered_map<ps::Key, int> store_iteration_;
 };
 
 // for UDP server
