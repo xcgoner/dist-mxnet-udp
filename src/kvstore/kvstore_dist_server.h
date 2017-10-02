@@ -427,7 +427,7 @@ class KVStoreDistServer {
       }
       else {
         // TODO: ???
-        LG << "something is wrong for pulling" << "req_data.iteration: " << req_data.iteration << ", store_iteration_[key]: " << store_iteration_[key];
+        // LG << "something is wrong for pulling: " << "req_data.iteration: " << req_data.iteration << ", store_iteration_[key]: " << store_iteration_[key];
         // still response
         ps::KVPairs<real_t> response;
         CHECK(!stored.is_none()) << "init " << key << " first";
