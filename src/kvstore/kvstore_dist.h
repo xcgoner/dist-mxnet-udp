@@ -125,8 +125,14 @@ class KVStoreDist : public KVStoreLocal {
     std::vector<std::vector<NDArray*> > grouped_vals;
     GroupKVPairs(keys, values, &uniq_keys, &grouped_vals);
 
-    // TODO: random permute
-    // std::random_shuffle(uniq_keys.begin(), uniq_keys.end());
+    // // debug
+    // std::ostringstream key_list;
+    // key_list << "key_list: ";
+    // for (size_t i = 0; i < uniq_keys.size(); ++i) {
+    //   key_list << uniq_keys[i] << ", ";
+    // }
+    // LG << key_list.str();
+
     for (size_t i = 0; i < uniq_keys.size(); ++i) {
       int key = uniq_keys[i];
 
@@ -242,8 +248,6 @@ class KVStoreDist : public KVStoreLocal {
     std::vector<std::vector<NDArray> > grouped_vals;
     GroupKVPairs(keys, values, &uniq_keys, &grouped_vals);
 
-    // TODO: random permute
-    // std::random_shuffle(uniq_keys.begin(), uniq_keys.end());
     for (size_t i = 0; i < uniq_keys.size(); ++i) {
       // merge over devcies
       int key = uniq_keys[i];

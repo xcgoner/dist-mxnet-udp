@@ -119,6 +119,15 @@ class KVStoreDistServer {
     // debug
     LG << "merge_threshold_ = " << merge_threshold_;
     LG << "tau_millisec_ = " << tau_millisec_;
+
+    // LG << dmlc::GetEnv("MXNET_KVSTORE_SERVER_USE_HISTORY", 0);
+    use_history_ = dmlc::GetEnv("MXNET_KVSTORE_SERVER_USE_HISTORY", 0);
+    if (use_history_) {
+      LG << "using history!";
+    }
+    else {
+      LG << "normally update!";
+    }
   }
 
   ~KVStoreDistServer() {
@@ -198,6 +207,7 @@ class KVStoreDistServer {
     // could be deallocated when this function returns. so we need to make sure
     // the operators with \a NDArray are actually finished
     if (req_meta.push) {
+
       if (req_meta.fake) {
         // must be in sync mode
         if (req_data.iteration == store_iteration_[key]) {
@@ -220,25 +230,73 @@ class KVStoreDistServer {
           int merge_num = merge_num_[key];
           CHECK_LE(merge_num, num_workers);
           CHECK_GE(merge_num, 1);
-          if (merge_num != num_workers) {
-            merged.array *= ( ((double)num_workers) / merge_num );
+
+          if (use_history_ && history_merge_num_[key] != prev_merge_num_[key]) {
+            // with history
+            NDArray update = NDArray(stored.shape(), Context());
+            CopyFromTo(merged.array, &update, 0);
+            if (merge_num != num_workers) {
+              update *= ( ((double)num_workers) / merge_num );
+            }
+            // variance reduction
+            double alpha = ((double)num_workers) / history_merge_num_[key];
+            double beta = ((double)num_workers) / prev_merge_num_[key];
+            update += (history_merge_buf_[key] * alpha - prev_merge_buf_[key] * beta);
+            if (updater_) {
+              exec_.Exec([this, key, &update, &stored](){
+                  CHECK(updater_);
+                  updater_(key, update, &stored);
+                });
+            } else {
+              // if no updater, just copy
+              CopyFromTo(update, &stored);
+            }
+          }
+          else {
+            // without history
+            if (merge_num != num_workers) {
+              merged.array *= ( ((double)num_workers) / merge_num );
+            }
+            if (updater_) {
+              exec_.Exec([this, key, &merged, &stored](){
+                  CHECK(updater_);
+                  updater_(key, merged.array, &stored);
+                });
+            } else {
+              // if no updater, just copy
+              CopyFromTo(merged.array, &stored);
+            }
           }
 
-          if (updater_) {
-            exec_.Exec([this, key, &merged, &stored](){
-                CHECK(updater_);
-                updater_(key, merged.array, &stored);
-              });
-          } else {
-            // if no updater, just copy
-            CopyFromTo(merged.array, &stored);
+          // if (updater_) {
+          //   exec_.Exec([this, key, &merged, &stored](){
+          //       CHECK(updater_);
+          //       updater_(key, merged.array, &stored);
+          //     });
+          // } else {
+          //   // if no updater, just copy
+          //   CopyFromTo(merged.array, &stored);
+          // }
+
+          if (use_history_) {
+            // update history merge
+            auto& history_merge_buf = history_merge_buf_[key];
+            if(history_merge_buf.is_none()) history_merge_buf = NDArray(stored.shape(), Context());
+            CopyFromTo(merged.array, &history_merge_buf, 0);
+            history_merge_num_[key] = merge_num;
+            auto& prev_merge_buf = prev_merge_buf_[key];
+            if(prev_merge_buf.is_none()) prev_merge_buf = NDArray(stored.shape(), Context());
+            CopyFromTo(merged.array, &prev_merge_buf, 0);
+            prev_merge_num_[key] = merge_num;
           }
+
           for (const auto& req : merged.request) {
             server->Response(req);
           }
           merged.request.clear();
           merge_num_[key] = 0;
           store_iteration_[key] = store_iteration_[key] + 1;
+
           stored.WaitToRead();
 
           // deubg
@@ -273,8 +331,8 @@ class KVStoreDistServer {
           // LG << key << " push itr: " << req_data.iteration << ", current itr: " << store_iteration_[key];
   
           if (req_data.iteration == store_iteration_[key]) {
-            // debug
-            sender_list_[key].push_back(req_meta.sender);
+            // // debug
+            // sender_list_[key].push_back(req_meta.sender);
   
             auto& merged = merge_buf_[key];
             if (merged.array.is_none()) {
@@ -339,26 +397,79 @@ class KVStoreDistServer {
                 // deubg
                 // LG << "normally merged!";
     
+                // normally merge
+
                 int num_workers = ps::NumWorkers();
-                if (merge_threshold_ != num_workers) {
-                  merged.array *= ( ((double)num_workers) / merge_threshold_ );
+
+                // update
+                if (use_history_ && history_merge_num_[key] != prev_merge_num_[key]) {
+                  // with history
+                  NDArray update = NDArray(dshape, Context());
+                  CopyFromTo(merged.array, &update, 0);
+                  if (merge_threshold_ != num_workers) {
+                    update *= ( ((double)num_workers) / merge_threshold_ );
+                  }
+                  // variance reduction
+                  double alpha = ((double)num_workers) / history_merge_num_[key];
+                  double beta = ((double)num_workers) / prev_merge_num_[key];
+                  update += (history_merge_buf_[key] * alpha - prev_merge_buf_[key] * beta);
+                  if (updater_) {
+                    exec_.Exec([this, key, &update, &stored](){
+                        CHECK(updater_);
+                        updater_(key, update, &stored);
+                      });
+                  } else {
+                    // if no updater, just copy
+                    CopyFromTo(update, &stored);
+                  }
+                  prev_merge_num_[key] = 0;
+                }
+                else {
+                  // without history
+                  if (merge_threshold_ != num_workers) {
+                    merged.array *= ( ((double)num_workers) / merge_threshold_ );
+                  }
+                  if (updater_) {
+                    exec_.Exec([this, key, &merged, &stored](){
+                        CHECK(updater_);
+                        updater_(key, merged.array, &stored);
+                      });
+                  } else {
+                    // if no updater, just copy
+                    CopyFromTo(merged.array, &stored);
+                  }
                 }
     
-                if (updater_) {
-                  exec_.Exec([this, key, &merged, &stored](){
-                      CHECK(updater_);
-                      updater_(key, merged.array, &stored);
-                    });
-                } else {
-                  // if no updater, just copy
-                  CopyFromTo(merged.array, &stored);
+                // if (updater_) {
+                //   exec_.Exec([this, key, &merged, &stored](){
+                //       CHECK(updater_);
+                //       updater_(key, merged.array, &stored);
+                //     });
+                // } else {
+                //   // if no updater, just copy
+                //   CopyFromTo(merged.array, &stored);
+                // }
+
+                // history
+                if (use_history_) {
+                  // update history merge
+                  auto& history_merge_buf = history_merge_buf_[key];
+                  if(history_merge_buf.is_none()) history_merge_buf = NDArray(dshape, Context());
+                  CopyFromTo(merged.array, &history_merge_buf, 0);
+                  history_merge_num_[key] = merge_threshold_;
+                  auto& prev_merge_buf = prev_merge_buf_[key];
+                  if(prev_merge_buf.is_none()) prev_merge_buf = NDArray(dshape, Context());
+                  CopyFromTo(merged.array, &prev_merge_buf, 0);
+                  prev_merge_num_[key] = merge_threshold_;
                 }
+
                 for (const auto& req : merged.request) {
                   server->Response(req);
                 }
                 merged.request.clear();
                 merge_num_[key] = 0;
                 store_iteration_[key] = store_iteration_[key] + 1;
+
                 stored.WaitToRead();
 
                 // // deubg
@@ -372,6 +483,35 @@ class KVStoreDistServer {
           else {
             // ignore the delayed updates
             server->Response(req_meta);
+            // if (use_history_) {
+            //   // update history merge
+            //   auto& history_merge_buf = history_merge_buf_[key];
+            //   if (history_merge_buf.is_none()) {
+            //     history_merge_buf = NDArray(dshape, Context());
+            //     CopyFromTo(recved, &history_merge_buf, 0);
+            //     prev_merge_num_[key] = 1;
+            //   }
+            //   else {
+            //     history_merge_buf += recved;
+            //     prev_merge_num_[key] += 1;
+            //   }
+            // }
+            if (use_history_ && req_data.iteration == store_iteration_[key]-1) {
+              // from the previous iteration
+              auto& history_merge_buf = history_merge_buf_[key];
+              if (history_merge_buf.is_none()) {
+                history_merge_buf = NDArray(dshape, Context());
+                history_merge_num_[key] = 0;
+              }
+      
+              if (prev_merge_num_[key] == 0) {
+                CopyFromTo(recved, &history_merge_buf, 0);
+                history_merge_num_[key] = 1;
+              } else {
+                history_merge_buf += recved;
+                history_merge_num_[key] = history_merge_num_[key] + 1;
+              }
+            }
             // debug 
             // LG << "push is ignored";
           }
@@ -476,6 +616,12 @@ class KVStoreDistServer {
   Executor exec_;
 
   ps::KVServer<float>* ps_server_;
+
+  bool use_history_;
+  std::unordered_map<ps::Key, NDArray> history_merge_buf_;
+  std::unordered_map<ps::Key, int> history_merge_num_;
+  std::unordered_map<ps::Key, NDArray> prev_merge_buf_;
+  std::unordered_map<ps::Key, int> prev_merge_num_;
 
   // timer
   // threshold
