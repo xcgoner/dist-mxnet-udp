@@ -158,7 +158,7 @@ class KVStoreDist : public KVStoreLocal {
         recv_buf = NDArray(
           grouped_vals[i][0]->shape(), pinned_ctx_, true, grouped_vals[i][0]->dtype());
       }
-      auto pull_from_servers = [this, key, &recv_buf, iteration](
+      auto pull_from_servers = [this, key, recv_buf, iteration](
           RunContext rctx, Engine::CallbackOnComplete cb) {
         // convert to ps keys
         size_t size = recv_buf.shape().Size();
@@ -174,7 +174,7 @@ class KVStoreDist : public KVStoreLocal {
         // TODO: check thread-safe for iteration counter
         // LG << "MyRank: " << ps::MyRank() << ", pulling: " << key << ", iteration: " << store_iteration_[key];
         CHECK_NOTNULL(ps_worker_)->ZPull(
-            pskv.keys, vals, &pskv.lens, 0, [vals, cb, recv_buf](){ delete vals; cb(); }, iteration);
+            pskv.keys, vals, &pskv.lens, 0, [vals, cb](){ delete vals; cb(); }, iteration);
       };
 
       CHECK_NOTNULL(Engine::Get())->PushAsync(
