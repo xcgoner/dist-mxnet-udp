@@ -25,8 +25,8 @@ logging.basicConfig(level=logging.DEBUG)
 os.environ["MXNET_KVSTORE_BIGARRAY_BOUND"] = "2000"
 os.environ["DMLC_NUM_KEYRANGE"] = "40"
 os.environ["PS_VAN"] = "zmq"
-# os.environ["MXNET_MERGE_THRESHOLD"] = "8"
-# os.environ["MXNET_MERGE_TAU_MILLISECOND"] = "20"
+os.environ["MXNET_MERGE_THRESHOLD"] = "5"
+os.environ["MXNET_MERGE_TAU_MILLISECOND"] = "20"
 # os.environ["DMLC_PS_PULL_THRESHOLD"] = "1"
 # os.environ["MXNET_KVSTORE_SERVER_USE_HISTORY"] = "1"
 from common import find_mxnet, fit
