@@ -68,6 +68,15 @@ class KVStoreDist : public KVStoreLocal {
 
     // // initialization
     // iteration_ = -1;
+
+    const char *partial_pull = ps::Environment::Get()->find("DMLC_PS_PULL_THRESHOLD");
+    if (partial_pull == nullptr) {
+      partial_pull_ = false;
+    }
+    else {
+      partial_pull_ = true;
+    }
+
   }
 
   virtual ~KVStoreDist() {
@@ -143,13 +152,13 @@ class KVStoreDist : public KVStoreLocal {
 
       // use the same array for merging to guarantee that pull always happens
       // after the previous push on this key
-      auto& recv_buf = comm_buf_[key];
+      auto& recv_buf = pull_buf_[key];
       if (recv_buf.is_none()) {
         // it may happen for the first time a no-rank-0 worker pull the weight.
         recv_buf = NDArray(
           grouped_vals[i][0]->shape(), pinned_ctx_, true, grouped_vals[i][0]->dtype());
       }
-      auto pull_from_servers = [this, key, recv_buf, iteration](
+      auto pull_from_servers = [this, key, &recv_buf, iteration](
           RunContext rctx, Engine::CallbackOnComplete cb) {
         // convert to ps keys
         size_t size = recv_buf.shape().Size();
@@ -165,7 +174,7 @@ class KVStoreDist : public KVStoreLocal {
         // TODO: check thread-safe for iteration counter
         // LG << "MyRank: " << ps::MyRank() << ", pulling: " << key << ", iteration: " << store_iteration_[key];
         CHECK_NOTNULL(ps_worker_)->ZPull(
-            pskv.keys, vals, &pskv.lens, 0, [vals, cb](){ delete vals; cb(); }, iteration);
+            pskv.keys, vals, &pskv.lens, 0, [vals, cb, recv_buf](){ delete vals; cb(); }, iteration);
       };
 
       CHECK_NOTNULL(Engine::Get())->PushAsync(
@@ -185,10 +194,12 @@ class KVStoreDist : public KVStoreLocal {
 
   void set_updater(const Updater& updater) override {
     CHECK(updater) << "invalid updater";
+    // LG << "setting updater";
     if (IsServerNode()) {
       CHECK_NOTNULL(server_)->set_updater(updater);
     } else {
       updater_ = updater;
+      // LG << "updater set for worker";
     }
   }
 
@@ -262,7 +273,7 @@ class KVStoreDist : public KVStoreLocal {
 
       
 
-      auto& send_buf = comm_buf_[key];
+      auto& send_buf = grad_buf_[key];
       if (merged.ctx().dev_mask() == cpu::kDevMask) {
         send_buf = merged;  // avoid memory copy
       } else {
@@ -407,12 +418,15 @@ class KVStoreDist : public KVStoreLocal {
    */
   size_t bigarray_bound_;
   /// \brief send & recver buffer
-  std::unordered_map<int, NDArray> comm_buf_;
+  // std::unordered_map<int, NDArray> comm_buf_;
   /**
    * \brief the iteration counter
    */
   // int iteration_;
   std::unordered_map<ps::Key, int> store_iteration_;
+  std::unordered_map<ps::Key, NDArray> grad_buf_;
+  std::unordered_map<ps::Key, NDArray> pull_buf_;
+  bool partial_pull_;
 };
 
 // for UDP server

@@ -278,6 +278,7 @@ class KVStore(object):
             except:
                 raise
             self._send_command_to_servers(0, optim_str)
+            self._set_updater(opt.get_updater(optimizer))
         else:
             self._set_updater(opt.get_updater(optimizer))
 
