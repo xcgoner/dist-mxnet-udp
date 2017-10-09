@@ -75,7 +75,7 @@ if __name__ == '__main__':
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--num-classes', type=int, default=10,
                         help='the number of classes')
-    parser.add_argument('--num-examples', type=int, default=60000,
+    parser.add_argument('--num-examples', type=int, default=6000,
                         help='the number of training examples')
 
     parser.add_argument('--add_stn',  action="store_true", default=False, help='Add Spatial Transformer Network Layer (lenet only)')

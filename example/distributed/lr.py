@@ -2,7 +2,7 @@ import os, sys
 os.environ["MXNET_KVSTORE_BIGARRAY_BOUND"] = "10"
 os.environ["DMLC_NUM_KEYRANGE"] = "12"
 os.environ["PS_VAN"] = "zmq"
-# os.environ["MXNET_MERGE_THRESHOLD"] = "2"
+os.environ["MXNET_MERGE_THRESHOLD"] = "2"
 os.environ["MXNET_MERGE_TAU_MILLISECOND"] = "0"
 import argparse
 import logging
@@ -48,7 +48,7 @@ if __name__ == '__main__':
     model.fit(train_iter, eval_iter,
             optimizer_params={'learning_rate':0.01, 'momentum': 0.1},
             initializer=mx.init.Zero(),
-            num_epoch=3,
+            num_epoch=5,
             eval_metric='mse',
             batch_end_callback = mx.callback.Speedometer(100, 200),
             kvstore=kv)
