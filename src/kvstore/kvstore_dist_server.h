@@ -567,20 +567,20 @@ class KVStoreDistServer {
       }
       else {
         // TODO: ???
-        LG << "something is wrong for pulling: " << "req_data.iteration: " << req_data.iteration << ", store_iteration_[key]: " << store_iteration_[key];
-        // // still response
-        // ps::KVPairs<real_t> response;
-        // CHECK(!stored.is_none()) << "init " << key << " first";
-        // int len = stored.shape()[0];
-        // response.keys = req_data.keys;
-        // response.lens = {len};
-        // // TODO(mli) try to remove this CopyFrom
-        // response.vals.CopyFrom(static_cast<const float*>(stored.data().dptr_), len);
+        // LG << "something is wrong for pulling: " << "req_data.iteration: " << req_data.iteration << ", store_iteration_[key]: " << store_iteration_[key];
+        // still response
+        ps::KVPairs<real_t> response;
+        CHECK(!stored.is_none()) << "init " << key << " first";
+        int len = stored.shape()[0];
+        response.keys = req_data.keys;
+        response.lens = {len};
+        // TODO(mli) try to remove this CopyFrom
+        response.vals.CopyFrom(static_cast<const float*>(stored.data().dptr_), len);
         // response.iteration = req_data.iteration;
-        // // // debug
-        // // LG << "store_iteration_[key]: " << store_iteration_[key];
-        // server->Response(req_meta, response);
-        // server->Response(req_meta);
+        response.iteration = store_iteration_[key];
+        // // debug
+        // LG << "store_iteration_[key]: " << store_iteration_[key];
+        server->Response(req_meta, response);
       }
     }
   }
