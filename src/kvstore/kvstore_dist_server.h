@@ -528,7 +528,7 @@ class KVStoreDistServer {
     } else {
       // pull
       if (sync_mode_ && req_data.iteration > store_iteration_[key]) {
-        // LG << key << " pull itr: " << req_data.iteration << ", current itr: " << store_iteration_[key] << ", push back";
+        LG << key << " pull itr: " << req_data.iteration << ", current itr: " << store_iteration_[key] << ", push back";
         // push back to the queue and process later
         ps::Message msg;
         msg.meta.head        = req_meta.cmd;
@@ -580,6 +580,7 @@ class KVStoreDistServer {
         // // // debug
         // // LG << "store_iteration_[key]: " << store_iteration_[key];
         // server->Response(req_meta, response);
+        // server->Response(req_meta);
       }
     }
   }
