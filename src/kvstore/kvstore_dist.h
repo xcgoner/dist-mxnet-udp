@@ -285,8 +285,8 @@ class KVStoreDist : public KVStoreLocal {
 
       int iteration = store_iteration_[key];
 
-      // debug
-      if (iteration % 10 == 0) LG << ps::MyRank();
+      // // debug
+      // if (iteration % 10 == 0) LG << ps::MyRank();
 
       // push to servers
       auto push_to_servers =
