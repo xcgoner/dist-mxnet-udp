@@ -298,6 +298,10 @@ class KVStoreDist : public KVStoreLocal {
         // LG << "EncodeKey in Push_";
         PSKV& pskv = EncodeKey(key, size);
 
+        if (iteration == -1) {
+          LG << "key: " << key << ", #chunks: " << pskv.keys.size();
+        }
+
 #if MKL_EXPERIMENTAL == 1
         mkl_set_tblob_eager_mode(send_buf.data());
 #endif
