@@ -561,7 +561,11 @@ class KVStoreDistServer {
         response.iteration = store_iteration_[key];
         // // debug
         // LG << "store_iteration_[key]: " << store_iteration_[key];
-        server->Response(req_meta, response);
+        
+        std::thread responser([](const ps::KVMeta& req_meta, const ps::KVPairs<real_t>& response, ps::KVServer<real_t>* server) {
+          server->Response(req_meta, response);
+        }, req_meta, response, server);
+        responser.detach();
         // debug
         // LG << "pull response sent: key = " << key;
       }
@@ -580,7 +584,11 @@ class KVStoreDistServer {
         response.iteration = store_iteration_[key];
         // // debug
         // LG << "store_iteration_[key]: " << store_iteration_[key];
-        server->Response(req_meta, response);
+        // server->Response(req_meta, response);
+        std::thread responser([](const ps::KVMeta& req_meta, const ps::KVPairs<real_t>& response, ps::KVServer<real_t>* server) {
+          server->Response(req_meta, response);
+        }, req_meta, response, server);
+        responser.detach();
       }
     }
   }
