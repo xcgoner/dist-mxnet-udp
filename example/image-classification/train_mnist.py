@@ -29,7 +29,7 @@ os.environ["MXNET_MERGE_THRESHOLD"] = "3"
 os.environ["MXNET_MERGE_TAU_MILLISECOND"] = "0"
 # os.environ["DMLC_PS_PULL_THRESHOLD"] = "0.7"
 # os.environ["DMLC_PS_PARTIAL_PULL_ACTIVE"] = "0"
-# os.environ["DMLC_PS_PULL_DELAY"] = "50"
+os.environ["DMLC_PS_PULL_DELAY"] = "50"
 # os.environ["MXNET_KVSTORE_SERVER_USE_HISTORY"] = "1"
 from common import find_mxnet, fit
 from common.util import download_file
@@ -90,7 +90,7 @@ if __name__ == '__main__':
         gpus           = None,
         batch_size     = 64,
         disp_batches   = 100,
-        num_epochs     = 5,
+        num_epochs     = 3,
         lr             = .05,
         lr_step_epochs = '10',
         mom            = 0
