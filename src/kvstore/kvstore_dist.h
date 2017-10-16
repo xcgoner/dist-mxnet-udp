@@ -188,17 +188,29 @@ class KVStoreDist : public KVStoreLocal {
         }
       }
 
-      if (partial_pull_history_ && iteration > -1) {
-        CopyFromTo(recv_buf, &grad_buf);
-        if(iteration > 0) {
-          recv_buf *= (1+partial_pull_history_alpha_);
-          recv_buf -= (pull_prev_buf * partial_pull_history_alpha_);
-        }
-        CopyFromTo(grad_buf, &pull_prev_buf);
-      }
+      // if (partial_pull_history_ && iteration > -1) {
+      //   CopyFromTo(recv_buf, &grad_buf);
+      //   if(iteration > 0) {
+      //     recv_buf *= (1+partial_pull_history_alpha_);
+      //     recv_buf -= (pull_prev_buf * partial_pull_history_alpha_);
+      //   }
+      //   CopyFromTo(grad_buf, &pull_prev_buf);
+      // }
+      bool partial_pull_history = partial_pull_history_;
+      double partial_pull_history_alpha = partial_pull_history_alpha_;
 
-      auto pull_from_servers = [this, key, recv_buf, iteration](
+      auto pull_from_servers = [this, key, &recv_buf, iteration, partial_pull_history, &grad_buf, &pull_prev_buf, partial_pull_history_alpha](
           RunContext rctx, Engine::CallbackOnComplete cb) {
+
+            if (partial_pull_history_ && iteration > -1) {
+              CopyFromTo(recv_buf, &grad_buf);
+              if(iteration > 0) {
+                recv_buf *= (1+partial_pull_history_alpha_);
+                recv_buf -= (pull_prev_buf * partial_pull_history_alpha_);
+              }
+              CopyFromTo(grad_buf, &pull_prev_buf);
+            }
+        
         // convert to ps keys
         size_t size = recv_buf.shape().Size();
         // LG << "EncodeKey in Pull";
