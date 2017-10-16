@@ -19,6 +19,8 @@ python ../../tools/launch.py -n 3 -s 3 --launcher ssh -H local_hosts python lr.p
 
 python ../../tools/launch.py -n 2 --launcher ssh -H hosts python train_mnist.py --kv-store dist_sync
 
+python ../../tools/launch.py -n 7 -s 2 --launcher ssh -H hosts 'export MXNET_MERGE_THRESHOLD=3 && export MXNET_MERGE_TAU_MILLISECOND=0 && export DMLC_PS_PULL_THRESHOLD=0.7 && export DMLC_PS_PARTIAL_PULL_ACTIVE=0 && export MXNET_KVSTORE_PARTIAL_PULL_HISTORY=0.2 && export DMLC_PS_PULL_DELAY=200 && python train_mnist.py --kv-store dist_sync'
+
 ```
 
 -----------

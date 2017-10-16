@@ -77,6 +77,22 @@ class KVStoreDist : public KVStoreLocal {
       partial_pull_ = true;
     }
 
+    const char *partial_pull_history = ps::Environment::Get()->find("MXNET_KVSTORE_PARTIAL_PULL_HISTORY");
+    if (partial_pull_history == nullptr) {
+      partial_pull_history_ = false;
+    }
+    else {
+      partial_pull_history_alpha_ = atof(partial_pull_history);
+      if (partial_pull_history_alpha_ > 0) {
+        partial_pull_history_ = true;
+        LG << "Use historical info for partial pulling! alpha=" << partial_pull_history_alpha_;
+      }
+      else {
+        partial_pull_history_ = false;
+      }
+      
+    }
+
   }
 
   virtual ~KVStoreDist() {
@@ -153,11 +169,34 @@ class KVStoreDist : public KVStoreLocal {
       // use the same array for merging to guarantee that pull always happens
       // after the previous push on this key
       auto& recv_buf = pull_buf_[key];
+      auto& pull_prev_buf = pull_prev_buf_[key];
+      auto& grad_buf = grad_buf_[key];
       if (recv_buf.is_none()) {
         // it may happen for the first time a no-rank-0 worker pull the weight.
         recv_buf = NDArray(
           grouped_vals[i][0]->shape(), pinned_ctx_, true, grouped_vals[i][0]->dtype());
       }
+
+      if (partial_pull_history_) {
+        if (pull_prev_buf.is_none()) {
+          pull_prev_buf = NDArray(
+            grouped_vals[i][0]->shape(), pinned_ctx_, true, grouped_vals[i][0]->dtype());
+        }
+        if (grad_buf.is_none()) {
+          grad_buf = NDArray(
+            grouped_vals[i][0]->shape(), pinned_ctx_, true, grouped_vals[i][0]->dtype());
+        }
+      }
+
+      if (partial_pull_history_ && iteration > -1) {
+        CopyFromTo(recv_buf, &grad_buf);
+        if(iteration > 0) {
+          recv_buf *= (1+partial_pull_history_alpha_);
+          recv_buf -= (pull_prev_buf * partial_pull_history_alpha_);
+        }
+        CopyFromTo(grad_buf, &pull_prev_buf);
+      }
+
       auto pull_from_servers = [this, key, recv_buf, iteration](
           RunContext rctx, Engine::CallbackOnComplete cb) {
         // convert to ps keys
@@ -433,7 +472,10 @@ class KVStoreDist : public KVStoreLocal {
   std::unordered_map<ps::Key, int> store_iteration_;
   std::unordered_map<ps::Key, NDArray> grad_buf_;
   std::unordered_map<ps::Key, NDArray> pull_buf_;
+  std::unordered_map<ps::Key, NDArray> pull_prev_buf_;
   bool partial_pull_;
+  bool partial_pull_history_;
+  double partial_pull_history_alpha_;
 };
 
 // for UDP server
