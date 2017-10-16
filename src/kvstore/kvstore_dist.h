@@ -170,44 +170,29 @@ class KVStoreDist : public KVStoreLocal {
       // after the previous push on this key
       auto& recv_buf = pull_buf_[key];
       auto& pull_prev_buf = pull_prev_buf_[key];
-      auto& grad_buf = grad_buf_[key];
       if (recv_buf.is_none()) {
         // it may happen for the first time a no-rank-0 worker pull the weight.
         recv_buf = NDArray(
-          grouped_vals[i][0]->shape(), pinned_ctx_, true, grouped_vals[i][0]->dtype());
+          grouped_vals[i][0]->shape(), pinned_ctx_, false, grouped_vals[i][0]->dtype());
       }
 
       if (partial_pull_history_) {
         if (pull_prev_buf.is_none()) {
           pull_prev_buf = NDArray(
-            grouped_vals[i][0]->shape(), pinned_ctx_, true, grouped_vals[i][0]->dtype());
-        }
-        if (grad_buf.is_none()) {
-          grad_buf = NDArray(
-            grouped_vals[i][0]->shape(), pinned_ctx_, true, grouped_vals[i][0]->dtype());
+            grouped_vals[i][0]->shape(), pinned_ctx_, false, grouped_vals[i][0]->dtype());
         }
       }
 
-      // if (partial_pull_history_ && iteration > -1) {
-      //   CopyFromTo(recv_buf, &grad_buf);
-      //   if(iteration > 0) {
-      //     recv_buf *= (1+partial_pull_history_alpha_);
-      //     recv_buf -= (pull_prev_buf * partial_pull_history_alpha_);
-      //   }
-      //   CopyFromTo(grad_buf, &pull_prev_buf);
-      // }
-
       if (partial_pull_history_ && iteration > -1) {
-        // avoid memory copy
         NDArray temp_array = NDArray(
           grouped_vals[i][0]->shape(), pinned_ctx_, true, grouped_vals[i][0]->dtype());
-        temp_array = recv_buf;
-        recv_buf = pull_prev_buf;
-        pull_prev_buf = temp_array;
+        CopyFromTo(recv_buf, &temp_array);
         if(iteration > 0) {
-          recv_buf *= (-partial_pull_history_alpha_);
-          recv_buf += (pull_prev_buf * (partial_pull_history_alpha_+1));
+          recv_buf *= (1+partial_pull_history_alpha_);
+          recv_buf -= (pull_prev_buf * partial_pull_history_alpha_);
         }
+        // CopyFromTo(grad_buf, &pull_prev_buf);
+        pull_prev_buf = temp_array;
       }
 
       auto pull_from_servers = [this, key, &recv_buf, iteration](
