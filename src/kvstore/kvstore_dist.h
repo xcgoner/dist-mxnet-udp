@@ -196,20 +196,22 @@ class KVStoreDist : public KVStoreLocal {
       //   }
       //   CopyFromTo(grad_buf, &pull_prev_buf);
       // }
-      bool partial_pull_history = partial_pull_history_;
-      double partial_pull_history_alpha = partial_pull_history_alpha_;
 
-      auto pull_from_servers = [this, key, &recv_buf, iteration, partial_pull_history, &grad_buf, &pull_prev_buf, partial_pull_history_alpha](
+      if (partial_pull_history_ && iteration > -1) {
+        // avoid memory copy
+        NDArray temp_array = NDArray(
+          grouped_vals[i][0]->shape(), pinned_ctx_, true, grouped_vals[i][0]->dtype());
+        temp_array = recv_buf;
+        recv_buf = pull_prev_buf;
+        pull_prev_buf = temp_array;
+        if(iteration > 0) {
+          recv_buf *= (-partial_pull_history_alpha_);
+          recv_buf += (pull_prev_buf * (partial_pull_history_alpha_+1));
+        }
+      }
+
+      auto pull_from_servers = [this, key, &recv_buf, iteration](
           RunContext rctx, Engine::CallbackOnComplete cb) {
-
-            if (partial_pull_history_ && iteration > -1) {
-              CopyFromTo(recv_buf, &grad_buf);
-              if(iteration > 0) {
-                recv_buf *= (1+partial_pull_history_alpha_);
-                recv_buf -= (pull_prev_buf * partial_pull_history_alpha_);
-              }
-              CopyFromTo(grad_buf, &pull_prev_buf);
-            }
         
         // convert to ps keys
         size_t size = recv_buf.shape().Size();
