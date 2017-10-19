@@ -60,8 +60,9 @@ endif
 
 # setup opencv
 ifeq ($(USE_OPENCV), 1)
-	CFLAGS += -DMXNET_USE_OPENCV=1 $(shell pkg-config --cflags opencv)
+	CFLAGS += -DMXNET_USE_OPENCV=1 -I~/.local/include/opencv
 	LDFLAGS += $(shell pkg-config --libs opencv)
+	#LDFLAGS += -lopencv_imgcodecs
 	BIN += bin/im2rec
 else
 	CFLAGS+= -DMXNET_USE_OPENCV=0

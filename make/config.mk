@@ -37,7 +37,7 @@ USE_PROFILER =
 ADD_LDFLAGS =
 
 # the additional compile flags you want to add
-ADD_CFLAGS =
+ADD_CFLAGS = "-I/usr/include/openblas/"
 
 #---------------------------------------------
 # matrix computation libraries for CPU/GPU
@@ -79,14 +79,14 @@ USE_OPENMP = 1
 # MKL ML Library folder, need to be root for /usr/local
 # Change to User Home directory for standard user
 # For USE_BLAS!=mkl only
-MKLML_ROOT=/usr/local
+MKLML_ROOT=~/.local
 
 # whether use MKL2017 library
-USE_MKL2017 = 0
+USE_MKL2017 = 1
 
 # whether use MKL2017 experimental feature for high performance
 # Prerequisite USE_MKL2017=1
-USE_MKL2017_EXPERIMENTAL = 0
+USE_MKL2017_EXPERIMENTAL = 1
 
 # whether use NNPACK library
 USE_NNPACK = 0
@@ -99,7 +99,7 @@ UNAME_S := $(shell uname -s)
 ifeq ($(UNAME_S), Darwin)
 USE_BLAS = apple
 else
-USE_BLAS = atlas
+USE_BLAS = openblas
 endif
 
 # add path to intel library, you may need it for MKL, if you did not add the path

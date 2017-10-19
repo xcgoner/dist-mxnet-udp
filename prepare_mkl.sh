@@ -85,7 +85,7 @@ if [ -z $MKLROOT ] || [ $VERSION_LINE -lt $VERSION_MATCH ]; then
       #...If it is not then downloaded and unpacked
       wget --no-check-certificate -P $MXNET_ROOT $MKLURL -O $MXNET_ROOT/$ARCHIVE_BASENAME
       tar -xzf $MXNET_ROOT/$ARCHIVE_BASENAME -C $MXNET_ROOT
-      #echo $HOME_MKL
+      echo $HOME_MKL
       yes | cp -rf $MXNET_ROOT/$MKL_CONTENT_DIR/* $HOME_MKL
       rm -rf $MXNET_ROOT/$MKL_CONTENT_DIR
     fi

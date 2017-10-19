@@ -7,10 +7,10 @@ list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake/Modules)
 include(cmake/Utils.cmake)
 mxnet_option(USE_OPENCV  "Build with OpenCV support" ON)
 mxnet_option(USE_OPENMP  "Build with Openmp support" ON)
-mxnet_option(USE_CUDNN   "Build with cudnn support"  ON) # one could set CUDNN_ROOT for search path
-mxnet_option(USE_CUDA    "Build with CUDA support"   ON)
+mxnet_option(USE_CUDNN   "Build with cudnn support"  OFF) # one could set CUDNN_ROOT for search path
+mxnet_option(USE_CUDA    "Build with CUDA support"   OFF)
 mxnet_option(USE_PROFILER "Build with Profiler support"   OFF)
-mxnet_option(USE_DIST_KVSTORE    "Build with DIST_KVSTORE support"   OFF)
+mxnet_option(USE_DIST_KVSTORE    "Build with DIST_KVSTORE support"   ON)
 mxnet_option(USE_PLUGINS_WARPCTC	"Use WARPCTC Plugins" OFF)
 mxnet_option(USE_MXNET_LIB_NAMING "Use MXNet library naming conventions." ON)
 
