@@ -1,29 +1,5 @@
-Apache MXNet (incubating) for Deep Learning
+<img src=https://raw.githubusercontent.com/dmlc/dmlc.github.io/master/img/logo-m/mxnet2.png width=135/> *for Deep Learning*
 =====
-
-Note: this version is forked from tag 0.11.0.rc3
----------
-```
-git clone --recursive https://github.com/xcgoner/dist-mxnet.git
-Build with GPU and Distributed KVStore:
-make -j5 USE_OPENCV=0 USE_BLAS=openblas USE_CUDA=1 USE_CUDA_PATH=/usr/local/cuda USE_CUDNN=1 USE_DIST_KVSTORE=1
-make -j5 USE_OPENCV=0 USE_BLAS=openblas USE_CUDA=0 USE_DIST_KVSTORE=1
-
-pkill -u cx2 python
-
-python train_mnist.py
-
-python ../../tools/launch.py -n 2 --launcher ssh -H ../../tests/distributed/hosts python train_mnist.py --kv-store dist_sync
-
-python ../../tools/launch.py -n 3 -s 3 --launcher ssh -H local_hosts python lr.py
-
-python ../../tools/launch.py -n 2 --launcher ssh -H hosts python train_mnist.py --kv-store dist_sync
-
-python ../../tools/launch.py -n 7 -s 2 --launcher ssh -H hosts 'export MXNET_MERGE_THRESHOLD=3 && export MXNET_MERGE_TAU_MILLISECOND=0 && export DMLC_PS_PULL_THRESHOLD=0.7 && export DMLC_PS_PARTIAL_PULL_ACTIVE=0 && export MXNET_KVSTORE_PARTIAL_PULL_HISTORY=0.2 && export DMLC_PS_PULL_DELAY=200 && python train_mnist.py --kv-store dist_sync'
-
-```
-
------------
 
 [![Build Status](https://travis-ci.org/dmlc/mxnet.svg?branch=master)](https://travis-ci.org/dmlc/mxnet)
 [![Documentation Status](https://readthedocs.org/projects/mxnet/badge/?version=latest)](http://mxnet.io/)
@@ -31,25 +7,21 @@ python ../../tools/launch.py -n 7 -s 2 --launcher ssh -H hosts 'export MXNET_MER
 
 ![banner](https://raw.githubusercontent.com/dmlc/web-data/master/mxnet/image/banner.png)
 
-Apache MXNet (incubating) is a deep learning framework designed for both *efficiency* and *flexibility*.
-It allows you to ***mix*** [symbolic and imperative programming](http://mxnet.io/architecture/index.html#deep-learning-system-design-concepts)
-to ***maximize*** efficiency and productivity.
-At its core, MXNet contains a dynamic dependency scheduler that automatically parallelizes both symbolic and imperative operations on the fly.
+MXNet is a deep learning framework designed for both *efficiency* and *flexibility*.
+It allows you to ***mix*** the [flavours](http://mxnet.io/architecture/index.html#deep-learning-system-design-concepts) of symbolic
+programming and imperative programming to ***maximize*** efficiency and productivity.
+In its core, a dynamic dependency scheduler that automatically parallelizes both symbolic and imperative operations on the fly.
 A graph optimization layer on top of that makes symbolic execution fast and memory efficient.
-MXNet is portable and lightweight, scaling effectively to multiple GPUs and multiple machines.
+The library is portable and lightweight, and it scales to multiple GPUs and multiple machines.
 
 MXNet is also more than a deep learning project. It is also a collection of
 [blue prints and guidelines](http://mxnet.io/architecture/index.html#deep-learning-system-design-concepts) for building
-deep learning systems, and interesting insights of DL systems for hackers.
+deep learning system, and interesting insights of DL systems for hackers.
 
 [![Join the chat at https://gitter.im/dmlc/mxnet](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/dmlc/mxnet?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 What's New
 ----------
-* [Version 0.11.0.rc3 Release](https://github.com/apache/incubator-mxnet/releases/tag/0.11.0.rc3) - MXNet 0.11.0.rc3 Release.
-* [Apache Incubator](http://incubator.apache.org/projects/mxnet.html) - We are now an Apache Incubator project.
-* [Version 0.10.0 Release](https://github.com/dmlc/mxnet/releases/tag/v0.10.0) - MXNet 0.10.0 Release.
-* [Version 0.9.3 Release](./docs/architecture/release_note_0_9.md) - First 0.9 official release.
 * [Version 0.9.1 Release (NNVM refactor)](./docs/architecture/release_note_0_9.md) - NNVM branch is merged into master now. An official release will be made soon.
 * [Version 0.8.0 Release](https://github.com/dmlc/mxnet/releases/tag/v0.8.0)
 * [Updated Image Classification with new Pre-trained Models](./example/image-classification)
@@ -70,10 +42,10 @@ What's New
 
 Contents
 --------
-* [Documentation](http://mxnet.io/) and  [Tutorials](http://mxnet.io/tutorials/)
+* [Documentation and Tutorials](http://mxnet.io/)
 * [Design Notes](http://mxnet.io/architecture/index.html)
-* [Code Examples](https://github.com/dmlc/mxnet/tree/master/example)
-* [Installation](http://mxnet.io/get_started/install.html)
+* [Code Examples](example)
+* [Installation](http://mxnet.io/get_started/setup.html)
 * [Pretrained Models](https://github.com/dmlc/mxnet-model-gallery)
 * [Contribute to MXNet](http://mxnet.io/community/contribute.html)
 * [Frequent Asked Questions](http://mxnet.io/how_to/faq.html)
@@ -82,19 +54,19 @@ Features
 --------
 * Design notes providing useful insights that can re-used by other DL projects
 * Flexible configuration for arbitrary computation graph
-* Mix and match imperative and symbolic programming to maximize flexibility and efficiency
+* Mix and match good flavours of programming to maximize flexibility and efficiency
 * Lightweight, memory efficient and portable to smart devices
 * Scales up to multi GPUs and distributed setting with auto parallelism
-* Support for Python, R, Scala, C++ and Julia
+* Support for python, R, C++ and Julia
 * Cloud-friendly and directly compatible with S3, HDFS, and Azure
 
 Ask Questions
 -------------
-* Please use [mxnet/issues](https://github.com/dmlc/mxnet/issues) for how to use mxnet and reporting bugs
+* Please use [mxnet/issues](https://github.com/dmlc/mxnet/issues) for how to use mxnet and reporting bugs 
 
 License
 -------
-© Contributors, 2015-2017. Licensed under an [Apache-2.0](https://github.com/dmlc/mxnet/blob/master/LICENSE) license.
+© Contributors, 2015-2016. Licensed under an [Apache-2.0](https://github.com/dmlc/mxnet/blob/master/LICENSE) license.
 
 Reference Paper
 ---------------
@@ -106,4 +78,4 @@ In Neural Information Processing Systems, Workshop on Machine Learning Systems, 
 
 History
 -------
-MXNet emerged from a collaboration by the authors of [cxxnet](https://github.com/dmlc/cxxnet), [minerva](https://github.com/dmlc/minerva), and [purine2](https://github.com/purine/purine2). The project reflects what we have learned from the past projects. MXNet combines aspects of each of these projects to achieve flexibility, speed, and memory efficiency.
+MXNet is initiated and designed in collaboration by the authors of [cxxnet](https://github.com/dmlc/cxxnet), [minerva](https://github.com/dmlc/minerva) and [purine2](https://github.com/purine/purine2). The project reflects what we have learnt from the past projects. It combines important flavours of the existing projects for efficiency, flexibility and memory efficiency.
