@@ -62,7 +62,7 @@ def main():
                         directory into slave machines\'s SYNC_DST_DIR if ssh \
                         launcher is used')
     parser.add_argument('--launcher', type=str, default='ssh',
-                        choices = ['local', 'ssh', 'mpi', 'sge', 'yarn'],
+                        choices = ['local', 'ssh', 'mpi', 'sge', 'yarn', 'intel_mpi'],
                         help = 'the launcher to use')
     parser.add_argument('command', nargs='+',
                         help = 'command for launching the program')
@@ -92,6 +92,9 @@ def main():
       elif args.cluster == 'mpi':
           from dmlc_tracker import mpi
           mpi.submit(args)
+      elif args.cluster == 'intel_mpi':
+	  from dmlc_tracker import intel_mpi
+	  intel_mpi.submit(args)
       else:
           raise RuntimeError('Unknown submission cluster type %s' % args.cluster)
 
