@@ -56,10 +56,15 @@ if __name__ == '__main__':
         # train
         batch_size     = 128,
         num_epochs     = 300,
-        lr             = .05,
+        lr             = .1,
         lr_step_epochs = '200,250',
+        top_k          = 1, 
     )
     args = parser.parse_args()
+
+    nworkers = float(os.getenv('DMLC_NUM_WORKER', 1))
+    k = float(os.getenv('MXNET_MERGE_THRESHOLD', nworkers))
+    args.lr = args.lr * k * args.batch_size / 128
 
     # load network
     from importlib import import_module

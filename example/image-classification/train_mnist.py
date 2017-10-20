@@ -22,9 +22,9 @@ import os
 import argparse
 import logging
 logging.basicConfig(level=logging.DEBUG)
-os.environ["MXNET_KVSTORE_BIGARRAY_BOUND"] = "2000"
-os.environ["DMLC_NUM_KEYRANGE"] = "20"
-os.environ["PS_VAN"] = "zmq"
+# os.environ["MXNET_KVSTORE_BIGARRAY_BOUND"] = "2000"
+# os.environ["DMLC_NUM_KEYRANGE"] = "20"
+# os.environ["PS_VAN"] = "zmq"
 # os.environ["MXNET_MERGE_THRESHOLD"] = "2"
 # os.environ["MXNET_MERGE_TAU_MILLISECOND"] = "0"
 # os.environ["DMLC_PS_PULL_THRESHOLD"] = "0.7"
