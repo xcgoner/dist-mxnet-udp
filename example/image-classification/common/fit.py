@@ -187,7 +187,7 @@ def fit(args, network, data_loader, **kwargs):
 
     # evaluation metrices
     eval_metrics = ['accuracy']
-    if args.top_k > 0:
+    if args.top_k > 1:
         eval_metrics.append(mx.metric.create('top_k_accuracy', top_k=args.top_k))
 
     # callbacks that run after each batch
