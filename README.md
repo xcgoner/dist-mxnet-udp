@@ -3,6 +3,8 @@ Apache MXNet (incubating) for Deep Learning
 
 Note: this version is forked from tag 0.11.0.rc3
 ---------
+Emperimental: supporting partial pushing/pulling with timeout
+---------
 ```
 git clone --recursive https://github.com/xcgoner/dist-mxnet.git
 Build with GPU and Distributed KVStore:
